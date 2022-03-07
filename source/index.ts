@@ -8,12 +8,11 @@ import dotProp = require('dot-prop');
 import pkgUp = require('pkg-up');
 import envPaths = require('env-paths');
 import atomically = require('atomically');
-import Ajv, {ValidateFunction as AjvValidateFunction} from 'ajv';
-import ajvFormats from 'ajv-formats';
 import debounceFn = require('debounce-fn');
 import semver = require('semver');
 import onetime = require('onetime');
 import {JSONSchema} from 'json-schema-typed';
+import Validator, { AsyncCheckFunction, SyncCheckFunction } from 'fastest-validator';
 import {Deserialize, Migrations, OnDidChangeCallback, Options, Serialize, Unsubscribe, Schema, OnDidAnyChangeCallback} from './types';
 
 const encryptionAlgorithm = 'aes-256-cbc';
@@ -55,7 +54,7 @@ const MIGRATION_KEY = `${INTERNAL_KEY}.migrations.version`;
 class Conf<T extends Record<string, any> = Record<string, unknown>> implements Iterable<[keyof T, T[keyof T]]> {
 	readonly path: string;
 	readonly events: EventEmitter;
-	readonly #validator?: AjvValidateFunction;
+	readonly #validator?: SyncCheckFunction | AsyncCheckFunction;
 	readonly #encryptionKey?: string | Buffer | NodeJS.TypedArray | DataView;
 	readonly #options: Readonly<Partial<Options<T>>>;
 	readonly #defaultValues: Partial<T> = {};
@@ -99,18 +98,9 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 				throw new TypeError('The `schema` option must be an object.');
 			}
 
-			const ajv = new Ajv({
-				allErrors: true,
-				useDefaults: true
-			});
-			ajvFormats(ajv);
+			const validator = new Validator()
 
-			const schema: JSONSchema = {
-				type: 'object',
-				properties: options.schema
-			};
-
-			this.#validator = ajv.compile(schema);
+			this.#validator = validator.compile(options.schema);
 
 			for (const [key, value] of Object.entries<JSONSchema>(options.schema)) {
 				if (value?.default) {
@@ -435,13 +425,12 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 		}
 
 		const valid = this.#validator(data);
-		if (valid || !this.#validator.errors) {
-			return;
-		}
 
-		const errors = this.#validator.errors
-			.map(({instancePath, message = ''}) => `\`${instancePath.slice(1)}\` ${message}`);
-		throw new Error('Config schema violation: ' + errors.join('; '));
+    if (Array.isArray(valid)) {
+      const errors = valid
+        .map(({field, message}) => `\`${field}\` ${message}`);
+      throw new Error('Config schema violation: ' + errors.join('; '));
+    }
 	}
 
 	private _ensureDirectory(): void {
