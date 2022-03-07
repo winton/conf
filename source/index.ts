@@ -427,7 +427,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 
     if (Array.isArray(valid)) {
       const errors = valid
-        .map(({field, message}) => `\`${field}\` ${message}`);
+        .map(({type, message}) => `\`${type}\` ${message}`);
       throw new Error('Config schema violation: ' + errors.join('; '));
     }
 	}
