@@ -11,8 +11,7 @@ import atomically = require('atomically');
 import debounceFn = require('debounce-fn');
 import semver = require('semver');
 import onetime = require('onetime');
-import {JSONSchema} from 'json-schema-typed';
-import Validator, { AsyncCheckFunction, SyncCheckFunction } from 'fastest-validator';
+import Validator, { AsyncCheckFunction, SyncCheckFunction, ValidationSchema } from 'fastest-validator';
 import {Deserialize, Migrations, OnDidChangeCallback, Options, Serialize, Unsubscribe, Schema, OnDidAnyChangeCallback} from './types';
 
 const encryptionAlgorithm = 'aes-256-cbc';
@@ -102,7 +101,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 
 			this.#validator = validator.compile(options.schema);
 
-			for (const [key, value] of Object.entries<JSONSchema>(options.schema)) {
+			for (const [key, value] of Object.entries<ValidationSchema>(options.schema)) {
 				if (value?.default) {
 					this.#defaultValues[key as keyof T] = value.default;
 				}

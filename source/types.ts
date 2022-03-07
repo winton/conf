@@ -1,7 +1,7 @@
-import {JSONSchema as TypedJSONSchema} from 'json-schema-typed';
 // eslint-disable unicorn/import-index
 import Conf from '.';
 import {EventEmitter} from 'events';
+import { ValidationSchema } from 'fastest-validator';
 
 export interface Options<T> {
 	/**
@@ -228,7 +228,7 @@ export interface Options<T> {
 export type Migrations<T> = Record<string, (store: Conf<T>) => void>;
 
 export type Schema<T> = {[Property in keyof T]: ValueSchema};
-export type ValueSchema = TypedJSONSchema;
+export type ValueSchema = ValidationSchema;
 
 export type Serialize<T> = (value: T) => string;
 export type Deserialize<T> = (text: string) => T;
