@@ -97,9 +97,11 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 				throw new TypeError('The `schema` option must be an object.');
 			}
 
-			const validator = new Validator()
+			const validator = new Validator({
+        defaults: { object: { strict: true } }
+      })
 
-			this.#validator = validator.compile(options.schema);
+			this.#validator = validator.compile(Object.assign({}, options.schema, { $$strict: true }));
 
 			for (const [key, value] of Object.entries<ValidationSchema>(options.schema)) {
 				if (value?.default) {
